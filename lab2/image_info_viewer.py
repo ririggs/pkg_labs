@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Графическое приложение для просмотра информации об изображениях
-"""
-
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
@@ -18,14 +12,12 @@ class ImageInfoViewer:
         self.root.title("Просмотр информации об изображениях")
         self.root.geometry("1200x700")
         
-        # Переменная для отслеживания процесса загрузки
         self.loading = False
         self.cancel_loading = False
         
         self.create_widgets()
         
     def create_widgets(self):
-        # Верхняя панель с кнопками
         top_frame = ttk.Frame(self.root, padding="10")
         top_frame.pack(fill=tk.X)
         
@@ -40,7 +32,6 @@ class ImageInfoViewer:
                                        command=self.cancel_load, state=tk.DISABLED)
         self.cancel_button.pack(side=tk.LEFT, padx=5)
         
-        # Прогресс-бар
         self.progress_frame = ttk.Frame(self.root, padding="10")
         self.progress_frame.pack(fill=tk.X)
         
@@ -50,17 +41,14 @@ class ImageInfoViewer:
         self.progress_bar = ttk.Progressbar(self.progress_frame, mode='determinate')
         self.progress_bar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
-        # Фрейм для таблицы с прокруткой
         table_frame = ttk.Frame(self.root)
         table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Создание таблицы
         columns = ("Имя файла", "Размер (пиксели)", "Разрешение (DPI)", 
                    "Глубина цвета", "Сжатие")
         
         self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=20)
         
-        # Настройка столбцов
         self.tree.heading("Имя файла", text="Имя файла")
         self.tree.heading("Размер (пиксели)", text="Размер (пиксели)")
         self.tree.heading("Разрешение (DPI)", text="Разрешение (DPI)")
@@ -73,15 +61,12 @@ class ImageInfoViewer:
         self.tree.column("Глубина цвета", width=150, anchor=tk.CENTER)
         self.tree.column("Сжатие", width=200, anchor=tk.CENTER)
         
-        # Вертикальная прокрутка
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
         
-        # Горизонтальная прокрутка
         hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=hsb.set)
         
-        # Размещение элементов
         self.tree.grid(row=0, column=0, sticky='nsew')
         vsb.grid(row=0, column=1, sticky='ns')
         hsb.grid(row=1, column=0, sticky='ew')
@@ -89,7 +74,6 @@ class ImageInfoViewer:
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
         
-        # Строка состояния
         self.status_label = ttk.Label(self.root, text="Готов", relief=tk.SUNKEN)
         self.status_label.pack(fill=tk.X, side=tk.BOTTOM, padx=10, pady=5)
     
@@ -116,7 +100,6 @@ class ImageInfoViewer:
         folder = filedialog.askdirectory(title='Выберите папку с изображениями')
         
         if folder:
-            # Получить все файлы изображений в папке
             image_extensions = ('.bmp', '.jpg', '.jpeg', '.png', '.gif', '.tiff', '.tif')
             files = []
             
@@ -153,7 +136,6 @@ class ImageInfoViewer:
         self.cancel_loading = False
         self.cancel_button.config(state=tk.NORMAL)
         
-        # Запуск обработки в отдельном потоке
         thread = threading.Thread(target=self._process_files_thread, args=(files,))
         thread.daemon = True
         thread.start()
@@ -168,18 +150,14 @@ class ImageInfoViewer:
                     text=f"Загрузка отменена. Обработано {idx} из {total} файлов"))
                 break
             
-            # Обновление прогресса
             progress = (idx / total) * 100
             self.root.after(0, lambda p=progress, i=idx, t=total: self._update_progress(p, i, t))
             
-            # Получение информации об изображении
             info = self.get_image_info(filepath)
             
             if info:
-                # Добавление в таблицу (должно выполняться в главном потоке)
                 self.root.after(0, lambda i=info: self.tree.insert('', 'end', values=i))
         
-        # Завершение загрузки
         self.loading = False
         self.root.after(0, lambda: self.cancel_button.config(state=tk.DISABLED))
         self.root.after(0, lambda t=total: self.status_label.config(
@@ -195,37 +173,32 @@ class ImageInfoViewer:
         """Получение информации об изображении"""
         try:
             with Image.open(filepath) as img:
-                # Имя файла
                 filename = os.path.basename(filepath)
                 
-                # Размер в пикселях
                 size = f"{img.width} x {img.height}"
                 
-                # Разрешение (DPI)
                 dpi = img.info.get('dpi', None)
                 if dpi:
                     if isinstance(dpi, tuple):
-                        # Проверяем, что DPI не равно 0
                         if dpi[0] > 0 and dpi[1] > 0:
                             dpi_str = f"{dpi[0]:.0f} x {dpi[1]:.0f}"
                         else:
-                            dpi_str = "Не указано"
+                            dpi_str = "96 x 96 (по умолчанию)"
                     else:
                         if dpi > 0:
                             dpi_str = str(dpi)
                         else:
-                            dpi_str = "Не указано"
+                            dpi_str = "96 x 96 (по умолчанию)"
                 else:
-                    dpi_str = "Не указано"
+                    dpi_str = "96 x 96 (по умолчанию)"
                 
-                # Глубина цвета
                 mode = img.mode
                 bit_depth = self._get_bit_depth(mode)
                 
-                # Сжатие
+                file_size_kb = os.path.getsize(filepath) / 1024
+                
                 compression = img.info.get('compression', None)
                 
-                # Обработка типа сжатия
                 if compression is not None:
                     compression = self._get_bmp_compression(compression)
                 elif hasattr(img, 'format'):
@@ -245,15 +218,15 @@ class ImageInfoViewer:
                 else:
                     compression = 'Не указано'
                 
-                return (filename, size, dpi_str, bit_depth, compression)
+                compression_with_size = f"{compression}, {file_size_kb:.2f} КБ"
+                
+                return (filename, size, dpi_str, bit_depth, compression_with_size)
                 
         except Exception as e:
-            # В случае ошибки возвращаем информацию об ошибке
             filename = os.path.basename(filepath)
             return (filename, "Ошибка", "Ошибка", "Ошибка", f"Ошибка: {str(e)}")
     
     def _get_bit_depth(self, mode):
-        """Определение глубины цвета по режиму изображения"""
         mode_bits = {
             '1': '1 бит (монохромное)',
             'L': '8 бит (градации серого)',
